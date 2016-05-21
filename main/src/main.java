@@ -1,33 +1,38 @@
+import java.math.BigInteger;
+
 /**
  * Created by josip on 14.05.16..
  */
 public class main {
     public static void main(String[] args) {
-        Chain chain = new Chain(20);
-        Exponent exponent1 = new Exponent(10);
-        Exponent exponent2 = new Exponent(2);
-        Exponent exponent3 = new Exponent(8);
-        Exponent exponent4 = new Exponent(1);
-        Exponent exponent5 = new Exponent(4);
+        OperatorMutation mutation = new OperatorMutationSplitNode();
+//        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("170141183460469231731687303715884105725"));
+        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("60"));
+        int populationSize = 5000;
+        long avg = 0;
+        Population population = new Population(populationSize);
+        population.initialize(chainFactory);
 
-        chain.first().setSummand(exponent1);
+        long startTime = System.currentTimeMillis();
 
-        exponent1.setSummand(exponent3);
-        chain.add(exponent1);
+//        population.population.parallelStream().forEach(mutation::mutate);
 
-        exponent2.setSummand(exponent4);
-        chain.add(exponent2);
+        for (Chain chain : population.population) {
+            System.out.println(chain.size() + ": " + chain);
+            for (int i = 0; i < 1000; i++) {
+                mutation.mutate(chain);
+                System.out.println(chain.size() + ": " + chain);
+                avg += chain.size();
+            }
 
-        exponent3.setSummand(exponent5);
-        chain.add(exponent3);
+            break;
+            // System.out.println("pass");
 
-        chain.add(exponent4);
+        }
+        long endTime = System.currentTimeMillis();
 
-        exponent5.setSummand(exponent2);
-        chain.add(exponent5);
-
-
-        System.out.println(chain);
+        System.out.println("Time elapsed: " + (endTime - startTime) / 1000.0);
+        System.out.println("Avg size: " + (avg / (double)100));
 
     }
 }

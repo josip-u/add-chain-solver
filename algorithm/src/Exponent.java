@@ -1,19 +1,23 @@
-import java.util.Comparator;
+import java.math.BigInteger;
+import java.util.*;
 
 /**
  * Created by josip on 14.05.16..
  */
 public class Exponent implements Comparable<Exponent> {
-    private int value;
+    private BigInteger value;
     private Exponent summandLeft;
+    private Exponent summandRight;
+    private SortedSet<Exponent> parents;
 
-    public Exponent(int value) {
+    public Exponent(BigInteger value) {
         this.value = value;
+        parents = new TreeSet<>();
     }
 
     @Override
     public int compareTo(Exponent exponent) {
-        return value == exponent.value ? 0 : value < exponent.value ? 1 : -1;
+        return this.value.compareTo(exponent.value);
     }
 
     @Override
@@ -25,11 +29,42 @@ public class Exponent implements Comparable<Exponent> {
         return summandLeft;
     }
 
-    public void setSummand(Exponent exponent){
-        if (exponent.value <= (value - 1) / 2){
-            throw new IllegalArgumentException("Summand must be greater than or equal to half of exponent.");
-        }
-        summandLeft = exponent;
+    public boolean hasSummandLeft() {
+        return summandLeft != null;
     }
 
+    public Exponent getSummandRight() {
+        return summandRight;
+    }
+
+    public boolean hasSummandRight() {
+        return summandRight != null;
+    }
+
+    public void setSummands(Exponent summandLeft, Exponent summandRight) {
+        summandLeft.parents.add(this);
+        summandRight.parents.add(this);
+        this.summandLeft = summandLeft.max(summandRight);
+        this.summandRight = summandRight.min(summandLeft);
+    }
+
+    public void removeParent(Exponent parent) {
+        parents.remove(parent);
+    }
+
+    public BigInteger getValue() {
+        return value;
+    }
+
+    public SortedSet<Exponent> getParents() {
+        return parents;
+    }
+
+    public Exponent min(Exponent exponent) {
+        return this.compareTo(exponent) < 0 ? this : exponent;
+    }
+
+    public Exponent max(Exponent exponent) {
+        return this.compareTo(exponent) > 0 ? this : exponent;
+    }
 }
