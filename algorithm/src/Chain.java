@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 /**
  * Created by josip on 14.05.16..
  */
-public class Chain implements Comparable<Chain> {
+public class Chain implements Comparable<Chain>, Iterable<Exponent> {
     private final SortedMap<BigInteger, Exponent> exponents;
 
     private final Exponent exponent;
@@ -29,8 +29,20 @@ public class Chain implements Comparable<Chain> {
         return false;
     }
 
+    public void put(Map<BigInteger, Exponent> exponentsMap) {
+        this.exponents.putAll(exponentsMap);
+    }
+
     public boolean remove(BigInteger value) {
         return exponents.remove(value) != null;
+    }
+
+    public void remove(Collection<Exponent> values) {
+        values.forEach(exponent -> remove(exponent.getValue()));
+    }
+
+    public void removeValues(Collection<BigInteger> values) {
+        values.forEach(exponent -> remove(exponent));
     }
 
     public Exponent getExponent() {
@@ -52,8 +64,24 @@ public class Chain implements Comparable<Chain> {
         return exponents.get(value);
     }
 
+    public SortedMap<BigInteger, Exponent> getExponentsDesc() {
+        return Collections.unmodifiableSortedMap(exponents);
+    }
+
     public SortedMap<BigInteger, Exponent> getExponentsDescLE(Exponent exponent) {
         return exponents.tailMap(exponent.getValue());
+    }
+
+    public SortedMap<BigInteger, Exponent> getExponentsDescGT(Exponent exponent) {
+        return exponents.headMap(exponent.getValue());
+    }
+
+    public boolean containsReference(Exponent exponent) {
+        return exponents.containsValue(exponent);
+    }
+
+    public boolean contains(BigInteger value) {
+        return exponents.containsKey(value);
     }
 
     @Override
@@ -62,9 +90,9 @@ public class Chain implements Comparable<Chain> {
                 .map(
                         exponent -> exponent.getValue().toString() + "(" +
                                 exponent.getParents().stream()
-                                .map(exponent1 -> exponent1.toString())
-                                .collect(Collectors.joining(",")
-                                ) + ") "
+                                        .map(exponent1 -> exponent1.toString() + (exponents.containsValue(exponent1) ? "-1" : "-0"))
+                                        .collect(Collectors.joining(",")
+                                        ) + ") "
                 )
                 .collect(Collectors.joining("->"));
     }
@@ -72,5 +100,10 @@ public class Chain implements Comparable<Chain> {
     @Override
     public int compareTo(Chain chain) {
         return size().compareTo(chain.size());
+    }
+
+    @Override
+    public Iterator<Exponent> iterator() {
+        return exponents.values().iterator();
     }
 }

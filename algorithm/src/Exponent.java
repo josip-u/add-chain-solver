@@ -48,8 +48,27 @@ public class Exponent implements Comparable<Exponent> {
         this.summandRight = summandRight.min(summandLeft);
     }
 
+    public void setSummands(Collection<Exponent> summands) {
+        for (Exponent summand : summands) {
+            summand.parents.add(this);
+        }
+        this.summandLeft = summands.stream().max(Exponent::compareTo).orElse(null);
+        this.summandRight = summands.stream().min(Exponent::compareTo).orElse(null);
+    }
+
     public void removeParent(Exponent parent) {
         parents.remove(parent);
+    }
+
+    public void removeParents(Collection<Exponent> parents) {
+        parents.removeAll(parents);
+    }
+
+    public void removeParent(BigInteger parentValue) {
+        Exponent parent = parents.stream().filter(exponent -> exponent.value.equals(parentValue)).findFirst().orElse(null);
+        if (parent != null) {
+            removeParent(parent);
+        }
     }
 
     public BigInteger getValue() {

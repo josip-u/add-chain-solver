@@ -4,15 +4,21 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Created by Josip on 17.05.2016..
+ * Created by Josip on 21.05.2016..
  */
-public class OperatorMutationSplitNode extends OperatorMutation {
+public class OperatorMutationAddOne extends OperatorMutation {
 
     @Override
     public Chain mutate(Chain chain) {
         Chain chainNew = new Chain(chain.getExponent().getValue());
-        Exponent choice = getRandomExponent(chain);
+        Exponent choice;
+        BigInteger newLeftValue;
         Exponent exponentNew = null;
+
+        do {
+            choice = getRandomExponent(chain);
+            newLeftValue = choice.getSummandLeft().getValue().add(BigInteger.ONE);
+        } while(choice.getValue().equals(newLeftValue));
 
         Boolean start = true;
         for (Map.Entry<BigInteger, Exponent> entry : chain.getExponentsDesc().entrySet()) {
@@ -36,17 +42,10 @@ public class OperatorMutationSplitNode extends OperatorMutation {
             BigInteger value = currentNew.getValue();
 
             if (choice.getValue().equals(value)) {
-                oldSummandLeft = currentOld.getSummandLeft();
-                if (oldSummandLeft.hasSummandLeft()) {
-                    oldSummandLeft = oldSummandLeft.getSummandLeft();
-                }
-                leftValue = oldSummandLeft.getValue();
+                leftValue = newLeftValue;
                 rightValue = value.subtract(leftValue);
 
             } else if (!value.equals(BigArithmetic.ONE)) {
-                if (currentOld.getSummandLeft() == null){
-                    int xyz = 4;
-                }
                 leftValue = currentOld.getSummandLeft().getValue();
                 rightValue = currentOld.getSummandRight().getValue();
             }
@@ -66,7 +65,7 @@ public class OperatorMutationSplitNode extends OperatorMutation {
 
                 if (!chainNew.add(newSummandRight)) {
                     newSummandRight = chainNew.get(rightValue);
-                } else if (choice.getValue().equals(value)){
+                } else if (choice.getValue().equals(value)) {
                     exponentNew = newSummandRight;
                 }
 
@@ -74,18 +73,14 @@ public class OperatorMutationSplitNode extends OperatorMutation {
             }
 
 
-
-
-
         }
 
-        if (exponentNew != null){
+        if (exponentNew != null) {
             constructSubTree(exponentNew, chainNew, chainNew.getExponentsDescLE(exponentNew));
             removeOrphans(chainNew);
         }
 
         return chainNew;
     }
-
 
 }

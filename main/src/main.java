@@ -5,9 +5,20 @@ import java.math.BigInteger;
  */
 public class main {
     public static void main(String[] args) {
-        OperatorMutation mutation = new OperatorMutationSplitNode();
-//        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("170141183460469231731687303715884105725"));
-        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("60"));
+        OperatorMutation[] mutations = {
+                new OperatorMutationAddOne(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode(),
+                new OperatorMutationSplitNode()
+        };
+        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("170141183460469231731687303715884105725"));
+//        ChainFactory chainFactory = new ChainBinaryFactory(new BigInteger("60"));
         int populationSize = 5000;
         long avg = 0;
         Population population = new Population(populationSize);
@@ -17,11 +28,24 @@ public class main {
 
 //        population.population.parallelStream().forEach(mutation::mutate);
 
+        int minSize;
+
         for (Chain chain : population.population) {
-            System.out.println(chain.size() + ": " + chain);
-            for (int i = 0; i < 1000; i++) {
-                mutation.mutate(chain);
-                System.out.println(chain.size() + ": " + chain);
+            minSize = chain.size();
+            System.out.println(chain.size() + ": START");
+            for (int i = 0; i < 100000; i++) {
+                if (i % 100 == 0) {
+                    System.out.println(i / 1000 + "%: " + chain.size());
+                    System.out.flush();
+                }
+                mutations[i < 60000 ? i % 2 : i % 6].mutate(chain);
+
+                if (chain.size() < minSize) {
+                    minSize = chain.size();
+                    System.out.println(i + ", " + chain.size() + ": " + chain);
+                    System.out.flush();
+                }
+
                 avg += chain.size();
             }
 
@@ -31,8 +55,8 @@ public class main {
         }
         long endTime = System.currentTimeMillis();
 
-        System.out.println("Time elapsed: " + (endTime - startTime) / 1000.0);
-        System.out.println("Avg size: " + (avg / (double)100));
+        System.out.println("Time elapsed: " + (endTime - startTime) / 100000.0);
+        System.out.println("Avg size: " + (avg / (double) 100000));
 
     }
 }
