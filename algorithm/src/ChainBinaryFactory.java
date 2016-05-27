@@ -34,19 +34,20 @@ public class ChainBinaryFactory implements ChainFactory {
 
             if (nextLeft == null) {
                 nextLeft = new Exponent(valueLeft);
-                chain.add(nextLeft);
+                chain.putIfAbsent(nextLeft);
             }
             if (valueLeft.equals(valueRight)) {
                 nextRight = nextLeft;
             } else if (nextRight == null) {
                 nextRight = new Exponent(valueRight);
-                chain.add(nextRight);
+                chain.putIfAbsent(nextRight);
             }
 
             current.setSummands(nextLeft, nextRight);
             current = nextLeft;
 
         }
+
         return chain;
     }
 }

@@ -1,7 +1,5 @@
 import java.math.BigInteger;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by Josip on 21.05.2016..
@@ -13,15 +11,19 @@ public class OperatorMutationAddOne extends OperatorMutation {
         Chain chainNew = new Chain(chain.getExponent().getValue());
         Exponent choice;
         BigInteger newLeftValue;
-        Exponent exponentNew = null;
+        Exponent exponentNewRight = null;
+        Exponent exponentNewLeft = null;
 
         do {
             choice = getRandomExponent(chain);
             newLeftValue = choice.getSummandLeft().getValue().add(BigInteger.ONE);
-        } while(choice.getValue().equals(newLeftValue));
+        } while (choice.getValue().equals(newLeftValue));
 
         Boolean start = true;
-        for (Map.Entry<BigInteger, Exponent> entry : chain.getExponentsDesc().entrySet()) {
+        List<Exponent> list = new ArrayList<>();
+        list.addAll(chain.getExponents());
+        list.sort((o1, o2) -> o2.compareTo(o1));
+        for (Exponent entry : list) {
             Exponent currentOld;
             Exponent currentNew;
             BigInteger leftValue = null;
@@ -29,13 +31,14 @@ public class OperatorMutationAddOne extends OperatorMutation {
             Exponent oldSummandLeft;
             Exponent newSummandLeft;
             Exponent newSummandRight;
+            Exponent result;
 
             if (start) {
                 currentOld = chain.getExponent();
                 currentNew = chainNew.getExponent();
                 start = false;
             } else {
-                currentOld = entry.getValue();
+                currentOld = entry;
                 currentNew = new Exponent(currentOld.getValue());
             }
 
@@ -51,22 +54,27 @@ public class OperatorMutationAddOne extends OperatorMutation {
             }
 
 
-            if (!chainNew.add(currentNew)) {
-                currentNew = chainNew.get(value);
+            result = chainNew.putIfAbsent(currentNew);
+            if (result != null) {
+                currentNew = result;
             }
 
             if (leftValue != null && rightValue != null) {
                 newSummandLeft = new Exponent(leftValue);
                 newSummandRight = new Exponent(rightValue);
 
-                if (!chainNew.add(newSummandLeft)) {
-                    newSummandLeft = chainNew.get(leftValue);
+                result = chainNew.putIfAbsent(newSummandLeft);
+                if (result != null) {
+                    newSummandLeft = result;
+                } else if (choice.getValue().equals(value)) {
+                    exponentNewLeft = newSummandLeft;
                 }
 
-                if (!chainNew.add(newSummandRight)) {
-                    newSummandRight = chainNew.get(rightValue);
+                result = chainNew.putIfAbsent(newSummandRight);
+                if (result != null) {
+                    newSummandRight = result;
                 } else if (choice.getValue().equals(value)) {
-                    exponentNew = newSummandRight;
+                    exponentNewRight = newSummandRight;
                 }
 
                 currentNew.setSummands(newSummandLeft, newSummandRight);
@@ -75,8 +83,15 @@ public class OperatorMutationAddOne extends OperatorMutation {
 
         }
 
-        if (exponentNew != null) {
-            constructSubTree(exponentNew, chainNew, chainNew.getExponentsDescLE(exponentNew));
+        if (exponentNewLeft != null) {
+            constructSubTree(exponentNewLeft, chainNew, chainNew.getExponents());
+        }
+
+        if (exponentNewRight != null) {
+            constructSubTree(exponentNewRight, chainNew, chainNew.getExponents());
+        }
+
+        if (exponentNewLeft != null || exponentNewRight != null){
             removeOrphans(chainNew);
         }
 

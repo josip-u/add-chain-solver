@@ -1,3 +1,5 @@
+import com.sun.org.apache.bcel.internal.generic.BIPUSH;
+
 import java.math.BigInteger;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -8,15 +10,22 @@ import java.util.stream.Collectors;
 public class OperatorCrossoverCombine extends OperatorCrossover {
     @Override
     Collection<Chain> crossover(Chain chain1, Chain chain2) {
-        Exponent point1;
-        Exponent point2;
+        Exponent point;
 
+        Chain chainOld;
+        Chain chainNew;
+
+        Exponent result;
+        Exponent currentNew;
+        Exponent newSummandLeft;
+        Exponent newSummandRight;
+
+        int counter = 0;
+        int counterMax = Integer.min(chain1.size(), chain2.size());
         do {
-            point1 = getRandomExponent(chain1);
-            point2 = chain2.get(point1.getValue());
-        } while (point2 == null || point2.equals(chain2.getExponent()));
-
-        final BigInteger point = point1.getValue();
+            point = getRandomExponent(chain1);
+            counter++;
+        } while (counter < counterMax && (point.equals(chain2.getExponent()) || chain2.get(point.getValue()) == null));
 
         List<Chain> chainsOld = new ArrayList<>();
         chainsOld.add(chain1);
@@ -26,95 +35,63 @@ public class OperatorCrossoverCombine extends OperatorCrossover {
         chainsNew.add(new Chain(chain1.getExponent().getValue()));
         chainsNew.add(new Chain(chain1.getExponent().getValue()));
 
+        List<Map<BigInteger, Exponent>> maps = new ArrayList<>();
+        maps.add(new HashMap<>());
+        maps.add(new HashMap<>());
+
+        Exponent pointFinal = point;
+
         for (int i = 0; i < 2; i++) {
-            Chain chainOld = chainsOld.get(i);
-            Chain chainNew = chainsNew.get(i);
+            maps.get(i).putAll(chainsOld.get(i).getExponentsMap());
+            maps.get(i).putAll(
+                    chainsOld.get(1 - i).getExponentsMap().values().stream()
+                            .filter(entry -> entry.compareTo(pointFinal) <= 0)
+                            .collect(Collectors.toMap(Exponent::getValue, exponent -> exponent))
+            );
+        }
 
-            Boolean start = true;
-            for (Map.Entry<BigInteger, Exponent> entry : chainOld.getExponentsDescGT(point1).entrySet()) {
-                Exponent currentOld;
-                Exponent currentNew;
-                if (start) {
-                    currentOld = chainOld.getExponent();
-                    currentNew = chainNew.getExponent();
-                    start = false;
+        for (int i = 0; i < 2; i++) {
+
+            for (Exponent currentOld : maps.get(0).values()) {
+                if (currentOld.compareTo(point) > 0) {
+                    chainNew = chainsNew.get(i);
                 } else {
-                    currentOld = entry.getValue();
-                    currentNew = new Exponent(currentOld.getValue());
+                    chainNew = chainsNew.get(1 - i);
                 }
 
-                BigInteger value = currentNew.getValue();
-                BigInteger leftValue = currentOld.getSummandLeft().getValue();
-                BigInteger rightValue = currentOld.getSummandRight().getValue();
+                currentNew = new Exponent(currentOld.getValue());
+                result = chainNew.putIfAbsent(currentNew);
 
-
-                Exponent newSummandLeft = new Exponent(leftValue);
-                Exponent newSummandRight = new Exponent(rightValue);
-
-                if (!chainNew.add(newSummandLeft)) {
-                    newSummandLeft = chainNew.get(leftValue);
+                if (result != null) {
+                    currentNew = result;
                 }
 
-                if (!chainNew.add(newSummandRight)) {
-                    newSummandRight = chainNew.get(rightValue);
+
+                if (currentOld.hasSummandLeft()) {
+                    newSummandLeft = new Exponent(currentOld.getSummandLeft().getValue());
+
+                    result = chainNew.putIfAbsent(newSummandLeft);
+                    if (result != null) {
+                        newSummandLeft = result;
+                    }
+                } else {
+                    continue;
                 }
 
-                if (!chainNew.add(currentNew)) {
-                    currentNew = chainNew.get(value);
+
+                newSummandRight = new Exponent(currentOld.getSummandRight().getValue());
+
+                result = chainNew.putIfAbsent(newSummandRight);
+                if (result != null) {
+                    newSummandRight = result;
                 }
 
                 currentNew.setSummands(newSummandLeft, newSummandRight);
-            }
-
-        }
-
-        for (int i = 0; i < 2; i++) {
-            Chain chainOld = chainsOld.get(i);
-            Chain chainNew = chainsNew.get(1 - i);
-
-            for (Map.Entry<BigInteger, Exponent> entry : chainOld.getExponentsDescLE(point1).entrySet()) {
-                Exponent currentOld;
-                Exponent currentNew;
-
-                Exponent newSummandLeft = null;
-                Exponent newSummandRight = null;
-
-                currentOld = entry.getValue();
-                currentNew = new Exponent(currentOld.getValue());
-
-                BigInteger value = currentNew.getValue();
-
-                if (currentOld.hasSummandLeft()) {
-                    BigInteger leftValue = currentOld.getSummandLeft().getValue();
-                    newSummandLeft = new Exponent(leftValue);
-
-                    if (!chainNew.add(newSummandLeft)) {
-                        newSummandLeft = chainNew.get(leftValue);
-                    }
-                }
-
-                if (currentOld.hasSummandRight()) {
-                    BigInteger rightValue = currentOld.getSummandRight().getValue();
-                    newSummandRight = new Exponent(rightValue);
-
-                    if (!chainNew.add(newSummandRight)) {
-                        newSummandRight = chainNew.get(rightValue);
-                    }
-                }
-
-                if (!chainNew.add(currentNew)) {
-                    currentNew = chainNew.get(value);
-                }
-
-                if (newSummandLeft != null && newSummandRight != null) {
-                    currentNew.setSummands(newSummandLeft, newSummandRight);
-                }
-
 
             }
-
-            removeOrphans(chainNew);
         }
+
+        chainsNew.forEach(OperatorGenetic::removeOrphans);
 
         return chainsNew;
     }

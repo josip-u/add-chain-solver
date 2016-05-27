@@ -1,6 +1,7 @@
 import javafx.collections.transformation.SortedList;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -8,6 +9,9 @@ import java.util.stream.Collectors;
  */
 public class Population implements Collection<Chain> {
     private final int sizeMax;
+
+    private Chain bestChainEver = null;
+
     public List<Chain> population;
 
 
@@ -18,17 +22,32 @@ public class Population implements Collection<Chain> {
 
     public void initialize(ChainFactory factory) {
         this.population.clear();
-        for (int i = 0; i < sizeMax * 2; i++) {
+        for (int i = 0; i < sizeMax; i++) {
             population.add(factory.generate());
         }
     }
 
-    public int getSizeMax(){
+    public int getSizeMax() {
         return sizeMax;
     }
 
-    public Chain getNth(int n){
-        return population.stream().sorted().skip(n).findFirst().orElse(null);
+    public Chain getBestChainEver() {
+        return bestChainEver;
+    }
+
+    public Chain getNth(int n) {
+        if (n >= size()) {
+            return null;
+        }
+        return population.get(n);
+    }
+
+    public Chain getRandom(){
+        Chain result;
+        do {
+            result = population.get(ThreadLocalRandom.current().nextInt(size()));
+        } while (result == null);
+        return result;
     }
 
     @Override
@@ -68,7 +87,13 @@ public class Population implements Collection<Chain> {
 
     @Override
     public boolean add(Chain exponents) {
-        return population.add(exponents);
+        if (size() < sizeMax) {
+            if (bestChainEver == null || exponents.compareTo(bestChainEver) < 0) {
+                bestChainEver = exponents;
+            }
+            return population.add(exponents);
+        }
+        return false;
     }
 
     @Override
@@ -83,7 +108,13 @@ public class Population implements Collection<Chain> {
 
     @Override
     public boolean addAll(Collection<? extends Chain> c) {
-        if (size() < sizeMax){
+
+        if (size() < sizeMax) {
+            Chain tmp = c.stream().min(Chain::compareTo).orElse(null);
+            if (tmp != null && (bestChainEver == null || tmp.compareTo(bestChainEver) < 0)) {
+                bestChainEver = tmp;
+            }
+
             return population.addAll(c);
         }
         return false;

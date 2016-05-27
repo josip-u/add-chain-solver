@@ -1,19 +1,55 @@
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
  * Created by josip on 14.05.16..
  */
-public class Chain implements Comparable<Chain>, Iterable<Exponent> {
-    private final SortedMap<BigInteger, Exponent> exponents;
+public class Chain implements Comparable<Chain> {
+    private final Map<BigInteger, Exponent> exponents;
+    private final List<Exponent> exponentsSorted;
+    /*private boolean dirty = false;*/
 
     private final Exponent exponent;
 
+    public Chain(Chain chain) {
+        this(chain.getExponent().getValue());
+
+        for (Exponent exponent : chain.getExponents()) {
+            Exponent result;
+            Exponent newExponent = new Exponent(exponent.getValue());
+
+            result = putIfAbsent(newExponent);
+            if (result != null) {
+                newExponent = result;
+            }
+            if (exponent.hasSummandLeft()){
+                Exponent newSummandLeft = new Exponent(exponent.getSummandLeft().getValue());
+                Exponent newSummandRight = new Exponent(exponent.getSummandRight().getValue());
+
+                result = putIfAbsent(newSummandLeft);
+                if (result != null) {
+                    newSummandLeft = result;
+                }
+
+                result = putIfAbsent(newSummandRight);
+                if (result != null) {
+                    newSummandRight = result;
+                }
+
+                newExponent.setSummands(newSummandLeft, newSummandRight);
+            }
+
+        }
+
+    }
+
     public Chain(BigInteger exponent) {
         this.exponent = new Exponent(exponent);
-        exponents = new TreeMap<>((o1, o2) -> o2.compareTo(o1));
+        exponents = new HashMap<>();
+        exponentsSorted = new ArrayList<>();
         exponents.put(exponent, this.exponent);
     }
 
@@ -21,72 +57,69 @@ public class Chain implements Comparable<Chain>, Iterable<Exponent> {
         return exponents.size();
     }
 
-    public boolean add(Exponent exponent) {
-        if (!exponents.containsKey(exponent.getValue())) {
-            exponents.put(exponent.getValue(), exponent);
-            return true;
+    /*
+        private void refreshExponentsSorted() {
+            exponentsSorted.clear();
+            exponentsSorted.addAll(exponents.values());
+            Collections.sort(exponentsSorted, (o1, o2) -> o2.compareTo(o1));
+            dirty = false;
         }
-        return false;
+    */
+    public Exponent putIfAbsent(Exponent exponent) {
+        return exponents.putIfAbsent(exponent.getValue(), exponent);
     }
 
-    public void put(Map<BigInteger, Exponent> exponentsMap) {
-        this.exponents.putAll(exponentsMap);
+    public Exponent remove(BigInteger value) {
+        return exponents.remove(value);
     }
 
-    public boolean remove(BigInteger value) {
-        return exponents.remove(value) != null;
-    }
-
-    public void remove(Collection<Exponent> values) {
-        values.forEach(exponent -> remove(exponent.getValue()));
-    }
-
-    public void removeValues(Collection<BigInteger> values) {
-        values.forEach(exponent -> remove(exponent));
-    }
 
     public Exponent getExponent() {
         return exponent;
     }
 
     public Exponent getNth(long index) {
-        long i = 0;
-        for (Exponent current : exponents.values()) {
-            if (i == index) {
-                return current;
-            }
-            ++i;
-        }
-        throw new IndexOutOfBoundsException("Chain doesn't have that many elements.");
+        return exponents.values().stream().skip(index).findFirst().orElse(null);
+    }
+
+    public Exponent getRandom() {
+        return exponents.values().stream().skip(ThreadLocalRandom.current().nextInt(size())).findFirst().orElse(null);
     }
 
     public Exponent get(BigInteger value) {
         return exponents.get(value);
     }
 
-    public SortedMap<BigInteger, Exponent> getExponentsDesc() {
-        return Collections.unmodifiableSortedMap(exponents);
+    public Collection<Exponent> getExponents() {
+        return exponents.values();
     }
 
-    public SortedMap<BigInteger, Exponent> getExponentsDescLE(Exponent exponent) {
-        return exponents.tailMap(exponent.getValue());
+    public Map<BigInteger, Exponent> getExponentsMap() {
+        return Collections.unmodifiableMap(exponents);
     }
 
-    public SortedMap<BigInteger, Exponent> getExponentsDescGT(Exponent exponent) {
-        return exponents.headMap(exponent.getValue());
-    }
+    /*
+        public Collection<Exponent> getExponentsDescLE(Exponent exponent) {
+            if (dirty) {
+                refreshExponentsSorted();
+            }
+            Exponent first = exponentsSorted.stream().filter(exponent1 -> exponent1.compareTo(exponent) <= 0).findFirst().orElse(null);
 
-    public boolean containsReference(Exponent exponent) {
-        return exponents.containsValue(exponent);
-    }
+            return exponentsSorted.subList(exponentsSorted.indexOf(first), exponentsSorted.size());
+        }
 
-    public boolean contains(BigInteger value) {
-        return exponents.containsKey(value);
-    }
+        public Collection<Exponent> getExponentsDescGT(Exponent exponent) {
+            if (dirty) {
+                refreshExponentsSorted();
+            }
+            Exponent first = exponentsSorted.stream().filter(exponent1 -> exponent1.compareTo(exponent) <= 0).findFirst().orElse(null);
 
+            return exponentsSorted.subList(0, exponentsSorted.indexOf(first));
+        }
+    */
     @Override
     public String toString() {
-        return exponents.values().stream().sorted((o1, o2) -> o1.compareTo(o2))
+        return exponents.values().stream().sorted(Exponent::compareTo)
                 .map(
                         exponent -> exponent.getValue().toString() + "(" +
                                 exponent.getParents().stream()
@@ -102,8 +135,4 @@ public class Chain implements Comparable<Chain>, Iterable<Exponent> {
         return size().compareTo(chain.size());
     }
 
-    @Override
-    public Iterator<Exponent> iterator() {
-        return exponents.values().iterator();
-    }
 }
