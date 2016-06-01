@@ -25,7 +25,7 @@ public class Chain implements Comparable<Chain> {
             if (result != null) {
                 newExponent = result;
             }
-            if (exponent.hasSummandLeft()){
+            if (exponent.hasSummandLeft()) {
                 Exponent newSummandLeft = new Exponent(exponent.getSummandLeft().getValue());
                 Exponent newSummandRight = new Exponent(exponent.getSummandRight().getValue());
 
@@ -121,11 +121,11 @@ public class Chain implements Comparable<Chain> {
     public String toString() {
         return exponents.values().stream().sorted(Exponent::compareTo)
                 .map(
-                        exponent -> exponent.getValue().toString() + "(" +
+                        Exponent::toString /*+ "(" +
                                 exponent.getParents().stream()
                                         .map(exponent1 -> exponent1.toString() + (exponents.containsValue(exponent1) ? "-1" : "-0"))
                                         .collect(Collectors.joining(",")
-                                        ) + ") "
+                                        ) + ") "*/
                 )
                 .collect(Collectors.joining("->"));
     }

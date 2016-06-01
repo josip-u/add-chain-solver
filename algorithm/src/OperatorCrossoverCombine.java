@@ -10,86 +10,75 @@ import java.util.stream.Collectors;
 public class OperatorCrossoverCombine extends OperatorCrossover {
     @Override
     Collection<Chain> crossover(Chain chain1, Chain chain2) {
-        Exponent point;
+        Exponent point1;
+        Exponent point2;
+        Chain chain1New = new Chain(chain1);
+        Chain chain2New = new Chain(chain2);
 
-        Chain chainOld;
-        Chain chainNew;
-
-        Exponent result;
-        Exponent currentNew;
-        Exponent newSummandLeft;
-        Exponent newSummandRight;
-
-        int counter = 0;
-        int counterMax = Integer.min(chain1.size(), chain2.size());
-        do {
-            point = getRandomExponent(chain1);
-            counter++;
-        } while (counter < counterMax && (point.equals(chain2.getExponent()) || chain2.get(point.getValue()) == null));
-
-        List<Chain> chainsOld = new ArrayList<>();
-        chainsOld.add(chain1);
-        chainsOld.add(chain2);
 
         List<Chain> chainsNew = new ArrayList<>();
-        chainsNew.add(new Chain(chain1.getExponent().getValue()));
-        chainsNew.add(new Chain(chain1.getExponent().getValue()));
+        chainsNew.add(chain1New);
+        chainsNew.add(chain2New);
 
-        List<Map<BigInteger, Exponent>> maps = new ArrayList<>();
-        maps.add(new HashMap<>());
-        maps.add(new HashMap<>());
+        int counter = 0;
+        int counterMax = Integer.min(chain1New.size(), chain2New.size());
+        do {
+            point1 = getRandomExponent(chain1New);
+            point2 = chain2New.get(point1.getValue());
+            counter++;
+        } while (counter < counterMax && (point1.equals(chain1New.getExponent()) || point2 == null));
 
-        Exponent pointFinal = point;
-
-        for (int i = 0; i < 2; i++) {
-            maps.get(i).putAll(chainsOld.get(i).getExponentsMap());
-            maps.get(i).putAll(
-                    chainsOld.get(1 - i).getExponentsMap().values().stream()
-                            .filter(entry -> entry.compareTo(pointFinal) <= 0)
-                            .collect(Collectors.toMap(Exponent::getValue, exponent -> exponent))
-            );
-        }
 
         for (int i = 0; i < 2; i++) {
 
-            for (Exponent currentOld : maps.get(0).values()) {
-                if (currentOld.compareTo(point) > 0) {
-                    chainNew = chainsNew.get(i);
-                } else {
-                    chainNew = chainsNew.get(1 - i);
-                }
-
-                currentNew = new Exponent(currentOld.getValue());
-                result = chainNew.putIfAbsent(currentNew);
-
-                if (result != null) {
-                    currentNew = result;
-                }
-
-
-                if (currentOld.hasSummandLeft()) {
-                    newSummandLeft = new Exponent(currentOld.getSummandLeft().getValue());
-
-                    result = chainNew.putIfAbsent(newSummandLeft);
-                    if (result != null) {
-                        newSummandLeft = result;
-                    }
-                } else {
+            Chain chainFrom = chainsNew.get(i);
+            Chain chainTo = chainsNew.get(1 - i);
+            for (Exponent current1 : chainFrom.getExponents()) {
+                if (current1.compareTo(point1) > 0) {
                     continue;
                 }
 
+                Exponent summandLeft2 = null;
+                Exponent summandRight2 = null;
 
-                newSummandRight = new Exponent(currentOld.getSummandRight().getValue());
-
-                result = chainNew.putIfAbsent(newSummandRight);
+                Exponent current2 = new Exponent(current1.getValue());
+                Exponent result = chainTo.putIfAbsent(current2);
                 if (result != null) {
-                    newSummandRight = result;
+                    current2 = result;
                 }
 
-                currentNew.setSummands(newSummandLeft, newSummandRight);
+                if (current1.hasSummandLeft()) {
+                    Exponent summandLeft1 = current1.getSummandLeft();
+                    summandLeft2 = new Exponent(summandLeft1.getValue());
+                    result = chainTo.putIfAbsent(summandLeft2);
+                    if (result != null) {
+                        summandLeft2 = result;
+                    }
+
+                }
+
+                if (current1.hasSummandRight()) {
+                    Exponent summandRight1 = current1.getSummandRight();
+                    summandRight2 = new Exponent(summandRight1.getValue());
+                    result = chainTo.putIfAbsent(summandRight2);
+                    if (result != null) {
+                        summandRight2 = result;
+                    }
+
+                }
+
+                if (summandLeft2 != null) {
+                    if (current2.hasSummandLeft()) {
+                        current2.getSummandLeft().removeParent(current2);
+                        current2.getSummandRight().removeParent(current2);
+                    }
+                    current2.setSummands(summandLeft2, summandRight2);
+                }
 
             }
+
         }
+
 
         chainsNew.forEach(OperatorGenetic::removeOrphans);
 

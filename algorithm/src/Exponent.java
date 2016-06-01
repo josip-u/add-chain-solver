@@ -1,5 +1,6 @@
 import java.math.BigInteger;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by josip on 14.05.16..
@@ -41,6 +42,10 @@ public class Exponent implements Comparable<Exponent> {
         return summandRight != null;
     }
 
+    public boolean hasSameSummands() {
+        return getSummandRight() == getSummandRight();
+    }
+
     public void setSummands(Exponent summandLeft, Exponent summandRight) {
         summandLeft.parents.add(this);
         summandRight.parents.add(this);
@@ -75,8 +80,12 @@ public class Exponent implements Comparable<Exponent> {
         return value;
     }
 
-    public SortedSet<Exponent> getParents() {
-        return parents;
+//    public SortedSet<Exponent> getParents() {
+//        return parents;
+//    }
+
+    public int getParentsSize() {
+        return parents.size();
     }
 
     public Exponent min(Exponent exponent) {

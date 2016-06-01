@@ -1,16 +1,21 @@
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.DoubleAccumulator;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by Josip on 22.05.2016..
  */
 public class mainCrossover {
     public static void main(String[] args) {
-        final int TOURNAMENT_SIZE = 4;
+        final int TOURNAMENT_SIZE = 8;
+
+        BigInteger exponent = new BigInteger("170141183460469231731687303715884105725");
+        if (args.length > 0){
+            exponent = new BigInteger(args[0]);
+        }
+
+
 
         OperatorMutation mutation1 = new OperatorMutationSplitNode();
         OperatorMutation mutation2 = new OperatorMutationAddOne();
@@ -18,16 +23,26 @@ public class mainCrossover {
         OperatorSelection selection = new OperatorSelectionRandom();
 
 //        ChainFactory factory = new ChainMutationFactoryDecorator(new ChainBinaryFactory(BigInteger.valueOf(60)), mutation1);
-//        ChainFactory factory = new ChainMutationFactoryDecorator(new ChainBinaryFactory(new BigInteger("170141183460469231731687303715884105725")), mutation2);
-        ChainFactory factory = new ChainMutationFactoryDecorator(new ChainBinaryFactory(new BigInteger("6490123999")), mutation2);
+        ChainFactory factory = new ChainMutationFactoryDecorator(
+                new ChainMutationFactoryDecorator(
+                        new ChainBinaryFactory(
+//                                new BigInteger("170141183460469231731687303715884105725")
+//                                new BigInteger("2").pow(37).subtract(BigInteger.valueOf(3))
+//                                new BigInteger("2").pow(67).subtract(BigInteger.valueOf(3))
+                                exponent
+                        ), mutation2
+                ), mutation1
+        );
+//        ChainFactory factory = new ChainMutationFactoryDecorator(new ChainBinaryFactory(new BigInteger("6490123999")), mutation2);
 
-        Population population = new Population(300);
+        Population population = new Population(1000);
         population.initialize(factory);
 
         System.out.println(population.getNth(0).size() + ", " + population.getNth(0));
 
         Set<Chain> tournament = new HashSet<>();
         List<Chain> parents;
+        List<Chain> children;
         List<Chain> worst;
         List<Chain> childrenModified = new ArrayList<>();
 
@@ -35,9 +50,12 @@ public class mainCrossover {
 
         long startTime = System.currentTimeMillis();
 
-        List<Integer> counterList = new ArrayList<>();
+        int iStagnation = 0;
 
-        for (int i = 0; i < 1000000; i++) {
+        for (int i = 0; i < 10000000; i++) {
+            if (i - iStagnation == 100000) {
+                break;
+            }
             tournament.clear();
             childrenModified.clear();
 
@@ -47,20 +65,22 @@ public class mainCrossover {
 
             parents = tournament.stream().sorted().limit(2).collect(Collectors.toList());
 
+            children = (List<Chain>) crossover.crossover(parents.get(0), parents.get(1));
+
             tournament.removeAll(parents);
             worst = tournament.stream().skip(TOURNAMENT_SIZE - 4).limit(2).collect(Collectors.toList());
 
             population.removeAll(worst);
             if (ThreadLocalRandom.current().nextDouble() < 0.75) {
-                childrenModified.add(mutation1.mutate(parents.get(0)));
+                childrenModified.add(mutation1.mutate(children.get(0)));
             } else {
-                childrenModified.add(new Chain(parents.get(0)));
+                childrenModified.add(children.get(0));
             }
 
-            if (ThreadLocalRandom.current().nextDouble() < 0.25) {
-                childrenModified.add(mutation2.mutate(parents.get(1)));
+            if (ThreadLocalRandom.current().nextDouble() < 0.75) {
+                childrenModified.add(mutation2.mutate(children.get(1)));
             } else {
-                childrenModified.add(new Chain(parents.get(1)));
+                childrenModified.add(children.get(1));
             }
 
             population.addAll(childrenModified);
@@ -69,10 +89,11 @@ public class mainCrossover {
             if (population.getBestChainEver().compareTo(bestChain) < 0) {
                 bestChain = population.getBestChainEver();
                 System.out.println(i + ": Pop. size:" + population.size() + ", Chain size: " + bestChain.size());
+                iStagnation = i;
             }
 
-            if (i % 20000 == 0) {
-                System.out.println("-- " + i / 20000 + "% --");
+            if (i % 10000 == 0) {
+                System.out.println("-- " + i / 10000 + "% --");
             }
 
         }
