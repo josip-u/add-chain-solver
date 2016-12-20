@@ -30,7 +30,7 @@ public abstract class OperatorGenetic {
 
         for (Exponent summandLeftCandidate : setLE.stream().filter(exponent -> exponent.compareTo(current) <= 0).sorted((o1, o2) -> o2.compareTo(o1)).collect(Collectors.toList())) {
             summandLeft = summandLeftCandidate;
-            if (counter == step) {
+            if (counter == step%10) {
                 break;
             }
             counter++;
@@ -44,20 +44,22 @@ public abstract class OperatorGenetic {
         if (result != null) {
             summandRight = result;
         } else {
-            constructSubTree(summandRight, chain, chain.getExponents(), 1);
+            constructSubTree(summandRight, chain, chain.getExponents(), step+10);
         }
 
         current.setSummands(summandLeft, summandRight);
 
     }
 
-    protected static void removeOrphans(Chain chainNew) {
+    public static void removeOrphans(Chain chainNew) {
         chainNew.getExponents().stream()
                 .filter(entry -> !entry.equals(chainNew.getExponent()) && entry.getParentsSize() == 0)
                 .collect(Collectors.toList())
                 .forEach(entry -> {
-                    entry.getSummandLeft().removeParent(entry.getValue());
-                    entry.getSummandRight().removeParent(entry.getValue());
+                    if (entry.hasSummandLeft())
+                        entry.getSummandLeft().removeParent(entry.getValue());
+                    if (entry.hasSummandRight())
+                        entry.getSummandRight().removeParent(entry.getValue());
                     chainNew.remove(entry.getValue());
                 });
     }

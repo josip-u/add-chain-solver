@@ -90,6 +90,10 @@ public class Chain implements Comparable<Chain> {
         return exponents.get(value);
     }
 
+    public Exponent getOrNull(BigInteger value) {
+        return exponents.getOrDefault(value, null);
+    }
+
     public Collection<Exponent> getExponents() {
         return exponents.values();
     }

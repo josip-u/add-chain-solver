@@ -1,3 +1,5 @@
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * Created by Josip on 24.05.2016..
  */
@@ -12,6 +14,10 @@ public class ChainMutationFactoryDecorator implements ChainFactory {
 
     @Override
     public Chain generate() {
-        return mutation.mutate(factory.generate());
+        if (ThreadLocalRandom.current().nextBoolean()){
+            return mutation.mutate(factory.generate());
+        }else{
+            return factory.generate();
+        }
     }
 }
